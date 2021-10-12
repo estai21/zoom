@@ -1,3 +1,5 @@
+'use strict';
+
 import http from "http";
 import WebSocket from "ws";
 import express from "express";
@@ -15,10 +17,26 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+const sockets = [];
+
 wss.on("connection", (socket) => {
+    sockets.push(socket);
+    socket["nickname"] = "Anonymous";
     console.log("Connected to Browser ✅️");
     socket.on("close", () => console.log("Disconnected from Browser ❌️"));
-    socket.on("message", (message) => console.log(message.toString()));
-    socket.send("hello!");
+    socket.on("message", (msg) => {
+        const message = JSON.parse(msg);
+        switch (message.type) {
+            case "new_message":
+                sockets.forEach((aSocket) => aSocket.send(`${socket.nickname}: ${message.payload}`));
+                break;
+            case "nickname":
+                socket["nickname"] = message.payload;
+                console.log(message.payload);
+                break;
+        }
+        console.log(message);
+        // console.log(msg.toString());
+    });
 });
 server.listen(3000, handleListen);
